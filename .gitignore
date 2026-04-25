@@ -1,0 +1,37 @@
+# Added by code-review-graph
+.code-review-graph/
+
+# Dependencies
+node_modules/
+functions/node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment — NEVER commit
+.env.local
+.env.*.local
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
+
+# TypeScript
+*.tsbuildinfo
+
+# Vite
+vite.config.ts.timestamp-*
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Crisis OS — Global Styles
+   Design language: dark mode by default, crisis-red primary,
+   glassmorphism surfaces, Inter typography.
+   ============================================================ */
+
+@layer base {
+  :root {
+    --bg-primary:   #080d1a;
+    --bg-surface:   #0f172a;
+    --bg-elevated:  #1a2235;
+    --border:       #1e293b;
+    --border-subtle:#0f172a;
+    color-scheme: dark;
+  }
+
+  * {
+    @apply box-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-slate-950 text-slate-100 font-sans antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-1.5 h-1.5;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-900;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-700 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-500;
+  }
+
+  /* Focus styles for accessibility */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2 ring-offset-slate-950;
+  }
+
+  /* Selection color */
+  ::selection {
+    @apply bg-primary-700/50 text-white;
+  }
+}
+
+@layer components {
+  /* Glass card surface */
+  .glass-card {
+    @apply bg-slate-900/70 border border-slate-800 backdrop-blur-sm rounded-xl;
+  }
+
+  .glass-card-elevated {
+    @apply bg-slate-800/60 border border-slate-700 backdrop-blur-md rounded-xl;
+  }
+
+  /* Crisis alert pulse ring */
+  .crisis-pulse {
+    @apply relative;
+  }
+  .crisis-pulse::before {
+    content: '';
+    @apply absolute -inset-1 rounded-full bg-primary-600/30 animate-ping;
+  }
+
+  /* Status indicator dot */
+  .status-dot {
+    @apply inline-block w-2 h-2 rounded-full;
+  }
+  .status-dot-safe     { @apply bg-green-400; }
+  .status-dot-help     { @apply bg-amber-400; }
+  .status-dot-unable   { @apply bg-red-400; }
+  .status-dot-pending  { @apply bg-slate-500; }
+  .status-dot-active   { @apply bg-blue-400; }
+  .status-dot-resolved { @apply bg-emerald-400; }
+
+  /* Severity badge base */
+  .severity-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold border;
+  }
+
+  /* Mobile-first container */
+  .page-container {
+    @apply max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Incident card hover */
+  .incident-card {
+    @apply glass-card p-4 cursor-pointer transition-all duration-200
+           hover:border-slate-600 hover:bg-slate-800/80 hover:shadow-glass
+           active:scale-[0.99];
+  }
+
+  /* Mobile action button (full width, large touch target) */
+  .action-btn-mobile {
+    @apply w-full py-4 rounded-xl text-base font-semibold tracking-wide
+           flex items-center justify-center gap-3 transition-all duration-200
+           active:scale-[0.98];
+  }
+}
+
+@layer utilities {
+  /* Text gradient utility */
+  .text-gradient-crisis {
+    @apply bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-safe {
+    @apply bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent;
+  }
+
+  /* No tap highlight on mobile */
+  .no-tap-highlight {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Tiny text for sub-labels */
+  .text-2xs {
+    font-size: 0.65rem;
+    line-height: 1rem;
+  }
+
+  /* Slow pulse for emergency banners */
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}

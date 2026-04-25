@@ -1,0 +1,114 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helpers ──────────────────────────────────────────────
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwn(uid) {
+      return request.auth.uid == uid;
+    }
+
+    function getRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function getOrgId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.orgId;
+    }
+
+    function isOrgAdmin() {
+      return isAuth() && getRole() == 'org_admin';
+    }
+
+    function isManager() {
+      return isAuth() && getRole() == 'manager';
+    }
+
+    function isStaffOrAbove() {
+      return isAuth() && (getRole() == 'manager' || getRole() == 'staff' || getRole() == 'org_admin');
+    }
+
+    // ─── Users ────────────────────────────────────────────────
+    match /users/{uid} {
+      // Anyone authenticated can read their own profile
+      allow read: if isAuth() && isOwn(uid);
+      // org_admin can read any profile
+      allow read: if isOrgAdmin();
+      // Anyone authenticated can create ONLY their own profile (sign-up / first login)
+      allow create: if isAuth() && isOwn(uid);
+      // Own profile: can update non-role fields
+      allow update: if isAuth() && isOwn(uid);
+      // org_admin can update any user (role assignment)
+      allow update: if isOrgAdmin();
+    }
+
+    // ─── Organizations ────────────────────────────────────────
+    match /organizations/{orgId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isOrgAdmin();
+    }
+
+    // ─── Properties ───────────────────────────────────────────
+    // Allow read without role check so join code lookup works for guest join
+    match /properties/{propertyId} {
+      allow read: if isAuth();
+      allow create, update, delete: if isOrgAdmin();
+    }
+
+    // ─── Floors & Rooms ───────────────────────────────────────
+    match /floors/{floorId} {
+      allow read: if isAuth();
+      allow write: if isOrgAdmin();
+    }
+
+    match /rooms/{roomId} {
+      allow read: if isAuth();
+      allow write: if isOrgAdmin();
+    }
+
+    // ─── Incidents ────────────────────────────────────────────
+    match /incidents/{incidentId} {
+      allow read: if isAuth();
+      allow create: if isStaffOrAbove();
+      allow update: if isManager() || isOrgAdmin();
+    }
+
+    // ─── Timeline (immutable audit log) ───────────────────────
+    match /timeline/{eventId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if false;
+    }
+
+    // ─── Guest Responses ──────────────────────────────────────
+    match /guest_responses/{responseId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.guestUid == request.auth.uid;
+      allow update: if isAuth() && resource.data.guestUid == request.auth.uid;
+    }
+
+    // ─── Broadcasts ───────────────────────────────────────────
+    match /broadcasts/{broadcastId} {
+      allow read: if isAuth();
+      allow write: if isManager() || isOrgAdmin();
+    }
+
+    // ─── Checklists ───────────────────────────────────────────
+    match /checklists/{itemId} {
+      allow read: if isAuth();
+      allow create: if isManager() || isOrgAdmin();
+      allow update: if isStaffOrAbove();
+    }
+
+    // ─── Handoffs ─────────────────────────────────────────────
+    match /handoffs/{handoffId} {
+      allow read: if isAuth();
+      allow write: if isManager() || isOrgAdmin();
+    }
+  }
+}

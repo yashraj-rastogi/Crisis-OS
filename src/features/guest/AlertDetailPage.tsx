@@ -9,6 +9,7 @@ import { submitGuestResponse } from '@/services/guestResponse.service';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { AlertBanner } from '@/components/ui/AlertBanner';
+import { LanguageSwitcher, useGuestLanguage } from '@/components/ui/LanguageSwitcher';
 import {
   ShieldCheck, AlertCircle, MoveHorizontal, Loader2, Siren,
 } from 'lucide-react';
@@ -54,6 +55,7 @@ export default function AlertDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user, firebaseUser } = useAuth();
   const navigate = useNavigate();
+  const [lang, setLang] = useGuestLanguage();
 
   const [incident, setIncident]     = useState<{
     type: string; location: { freeText: string }; aiOutput?: AIStructuredOutput;
@@ -93,10 +95,17 @@ export default function AlertDetailPage() {
   };
 
   const severity = incident?.aiOutput?.severity ?? 'high';
-  const message  = incident?.aiOutput?.guestInstructions?.en;
+  // Pick the instruction in the guest's preferred language, fall back to English
+  const message = incident?.aiOutput?.guestInstructions?.[lang]
+    ?? incident?.aiOutput?.guestInstructions?.en
+    ?? 'An emergency has been reported. Please remain calm and follow all instructions from staff.';
 
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-8 flex flex-col max-w-lg mx-auto">
+      {/* Language switcher */}
+      <div className="flex justify-end mb-4">
+        <LanguageSwitcher value={lang} onChange={setLang} />
+      </div>
       {/* Alert header */}
       <div className={`glass-card p-5 mb-6 border-2 ${
         severity === 'critical' ? 'border-red-600 bg-red-950/30' :

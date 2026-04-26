@@ -43,7 +43,9 @@ Respond ONLY with a valid JSON object (no markdown, no explanation) matching thi
   "severity": "<one of: low | medium | high | critical>",
   "guestInstructions": {
     "en": "<calm, clear 1-2 sentence instruction for guests in English, max 60 words>",
-    "hi": "<same instruction translated to Hindi>"
+    "hi": "<same instruction translated to Hindi>",
+    "es": "<same instruction translated to Spanish>",
+    "fr": "<same instruction translated to French>"
   },
   "staffChecklist": [
     "<immediate action 1>",
@@ -71,15 +73,19 @@ function normalizeOutput(raw: unknown): AIStructuredOutput {
     ? (r.severity as AIStructuredOutput['severity'])
     : 'high';
 
-  const instructions = r.guestInstructions as Record<string, string> | undefined;
+  const rawInstructions = r.guestInstructions as Record<string, unknown> | undefined;
+
+  const guestInstructions: AIStructuredOutput['guestInstructions'] = {
+    en: typeof rawInstructions?.en === 'string' ? rawInstructions.en : 'Please remain calm and follow staff instructions.',
+    hi: typeof rawInstructions?.hi === 'string' ? rawInstructions.hi : 'कृपया शांत रहें और कर्मचारियों के निर्देशों का पालन करें।',
+    es: typeof rawInstructions?.es === 'string' ? rawInstructions.es : 'Por favor mantenga la calma y siga las instrucciones del personal.',
+    fr: typeof rawInstructions?.fr === 'string' ? rawInstructions.fr : 'Veuillez rester calme et suivre les instructions du personnel.',
+  };
 
   return {
     summary:                 typeof r.summary === 'string' ? r.summary : 'Emergency situation in progress. Please follow staff instructions.',
     severity,
-    guestInstructions: {
-      en: instructions?.en ?? 'Please remain calm and follow staff instructions.',
-      hi: instructions?.hi ?? 'कृपया शांत रहें और कर्मचारियों के निर्देशों का पालन करें।',
-    },
+    guestInstructions,
     staffChecklist:          Array.isArray(r.staffChecklist) ? r.staffChecklist.filter(Boolean) : ['Assess situation', 'Alert management', 'Assist guests as needed'],
     escalationRecommendation:typeof r.escalationRecommendation === 'string' ? r.escalationRecommendation : 'Contact relevant emergency services as appropriate.',
     doNotList:               Array.isArray(r.doNotList) ? r.doNotList.filter(Boolean) : [],
@@ -97,6 +103,8 @@ function getFallback(type: IncidentType): AIStructuredOutput {
     guestInstructions: {
       en: 'An emergency has been reported. Please remain calm, stay where you are, and follow all instructions from staff.',
       hi: 'एक आपात स्थिति की सूचना मिली है। कृपया शांत रहें और कर्मचारियों के निर्देशों का पालन करें।',
+      es: 'Se ha reportado una emergencia. Por favor permanezca tranquilo y siga las instrucciones del personal.',
+      fr: 'Une urgence a été signalée. Veuillez rester calme et suivre les instructions du personnel.',
     },
     staffChecklist: [
       'Alert management immediately',

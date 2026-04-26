@@ -35,7 +35,14 @@ export type BroadcastScope = 'all' | 'floor' | 'zone' | 'staff-only';
 export type GuestStatus = 'safe' | 'need_help' | 'unable_to_move' | 'pending';
 
 // ------ Language --------------------------------------------
-export type SupportedLanguage = 'en' | 'hi';
+export type SupportedLanguage = 'en' | 'hi' | 'es' | 'fr';
+
+export const LANGUAGE_LABELS: Record<SupportedLanguage, string> = {
+  en: '🇬🇧 English',
+  hi: '🇮🇳 हिन्दी',
+  es: '🇪🇸 Español',
+  fr: '🇫🇷 Français',
+};
 
 // ------ Property --------------------------------------------
 export type PropertyType = 'hotel' | 'hostel';
@@ -100,10 +107,7 @@ export interface UserProfile {
 export interface AIStructuredOutput {
   summary: string;
   severity: SeverityLevel;
-  guestInstructions: {
-    en: string;
-    hi: string;
-  };
+  guestInstructions: Partial<Record<SupportedLanguage, string>>;
   staffChecklist: string[];
   escalationRecommendation: string;
   doNotList: string[];         // things guests/staff should NOT do

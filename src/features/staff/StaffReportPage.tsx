@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { createIncident } from '@/services/incident.service';
@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/Input';
 import { AlertBanner } from '@/components/ui/AlertBanner';
 import { INCIDENT_TYPE_LABELS } from '@/lib/constants';
 import type { IncidentType } from '@/lib/types';
-
+import { useVoiceInput } from '@/hooks/useVoiceInput';
+import { Mic, MicOff, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // Staff can report a subset of types
@@ -25,8 +26,27 @@ export default function StaffReportPage() {
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
 
+  // ── Voice dictation ────────────────────────────────────────
+  const { transcript, listening, supported, start, stop, reset } = useVoiceInput();
+
+  // Sync transcript into details textarea in real-time
+  useEffect(() => {
+    if (transcript) setDetails(transcript);
+  }, [transcript]);
+
+  const handleMicToggle = () => {
+    if (listening) {
+      stop();
+    } else {
+      reset();
+      setDetails('');
+      start();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (listening) stop();
     if (!location.trim()) { setError('Please enter the location.'); return; }
     if (!details.trim())  { setError('Please describe what happened.'); return; }
     if (!user?.propertyId) { setError('No property linked to your account.'); return; }
@@ -103,15 +123,49 @@ export default function StaffReportPage() {
             required
             disabled={loading}
           />
-          <Textarea
-            label="What did you observe?"
-            placeholder="Describe what you saw, heard, or smelled. Include time of observation."
-            value={details}
-            onChange={(e) => setDetails(e.target.value)}
-            required
-            disabled={loading}
-            rows={5}
-          />
+
+          {/* Details with voice input */}
+          <div className="relative">
+            <Textarea
+              label="What did you observe?"
+              placeholder="Describe what you saw, heard, or smelled. Include time of observation."
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              required
+              disabled={loading}
+              rows={5}
+            />
+
+            {/* Voice mic button */}
+            {supported && (
+              <div className="mt-2 flex items-center gap-3">
+                <button
+                  type="button"
+                  onPointerDown={handleMicToggle}
+                  disabled={loading}
+                  aria-label={listening ? 'Stop recording' : 'Start voice dictation'}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                    transition-all duration-200 border
+                    ${listening
+                      ? 'bg-red-900/40 border-red-600 text-red-400 animate-pulse'
+                      : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-primary-600 hover:text-primary-400'
+                    } disabled:opacity-50`}
+                >
+                  {listening
+                    ? <><MicOff className="w-4 h-4" /> Stop Recording</>
+                    : <><Mic className="w-4 h-4" /> Hold to Speak</>
+                  }
+                </button>
+
+                {listening && (
+                  <span className="flex items-center gap-1.5 text-xs text-red-400">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Listening…
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <Button type="submit" loading={loading} className="w-full" size="lg">

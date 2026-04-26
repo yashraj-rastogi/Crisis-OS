@@ -1,17 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { getIncident, resolveIncident } from '@/services/incident.service';
 import { subscribeToResponseAggregates } from '@/services/guestResponse.service';
+import { getSafetyAgentRecommendation } from '@/services/ai.service';
 import type { IncidentDoc } from '@/services/incident.service';
-import type { GuestResponse } from '@/lib/types';
+import type { GuestResponse, IncidentType } from '@/lib/types';
 import { GUEST_STATUS_LABELS, GUEST_STATUS_COLORS, INCIDENT_TYPE_LABELS } from '@/lib/constants';
 import { Button } from '@/components/ui/Button';
 import { AlertBanner } from '@/components/ui/AlertBanner';
 import { MapOverlay } from '@/components/crisis/MapOverlay';
 import { formatTimeAgo } from '@/lib/utils';
 import {
-  ShieldCheck, AlertCircle, MoveRight, Clock, Users, Radio, ArrowRight, CheckCircle2
+  ShieldCheck, AlertCircle, MoveRight, Clock, Users, Radio, ArrowRight, CheckCircle2, Bot, RefreshCw, Sparkles
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -45,6 +46,68 @@ function KPICard({ label, count, total, icon, colorClass, urgent }: KPICardProps
           />
         </div>
         <p className="text-xs text-slate-500 mt-1">{pct}% of {total} guests</p>
+      </div>
+    </div>
+  );
+}
+
+function SafetyAgentPanel({ type, agg, state }: { type: IncidentType, agg: any, state: string }) {
+  const [recommendation, setRecommendation] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const aggRef = useRef(agg);
+
+  useEffect(() => {
+    aggRef.current = agg;
+  }, [agg]);
+
+  const fetchRecommendation = async () => {
+    if (state === 'resolved') return;
+    setLoading(true);
+    const rec = await getSafetyAgentRecommendation(type, aggRef.current);
+    setRecommendation(rec);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchRecommendation();
+    const interval = setInterval(fetchRecommendation, 30000); // refresh every 30s
+    return () => clearInterval(interval);
+  }, [type, state]);
+
+  if (state === 'resolved') return null;
+
+  return (
+    <div className="glass-card p-4 border border-indigo-900/50 bg-indigo-950/20 relative overflow-hidden">
+      <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+        <Bot className="w-24 h-24" />
+      </div>
+      <div className="flex items-center justify-between mb-3 relative z-10">
+        <div className="flex items-center gap-2 text-indigo-400">
+          <Sparkles className="w-4 h-4" />
+          <h3 className="text-xs font-bold uppercase tracking-wider">SafetyAgent AI Advisor</h3>
+        </div>
+        <button 
+          onClick={fetchRecommendation} 
+          disabled={loading}
+          className="text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+          title="Refresh Recommendation"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : ''}`} />
+        </button>
+      </div>
+      <div className="relative z-10 min-h-[40px]">
+        {loading && !recommendation ? (
+          <div className="flex items-center gap-2 text-sm text-slate-400 animate-pulse">
+            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+            <span className="ml-2">Analyzing live conditions...</span>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-200 leading-relaxed font-medium">
+            {recommendation || "Monitor the situation closely."}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -175,6 +238,9 @@ export default function LiveResponseBoard() {
         <KPICard label="Can't Move"   count={agg.unableToMove} total={agg.total} icon={<MoveRight className="w-4 h-4" />}   colorClass="text-red-400"   urgent />
         <KPICard label="Pending"      count={agg.pending}      total={agg.total} icon={<Clock className="w-4 h-4" />}       colorClass="text-slate-400" />
       </div>
+
+      {/* SafetyAgent AI Recommendation Panel */}
+      <SafetyAgentPanel type={incident.type} agg={agg} state={incident.state} />
 
       {/* Spatial Awareness Map — Managers can place hazard pins */}
       {id && incident.propertyId && incident.state !== 'resolved' && (

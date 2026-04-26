@@ -10,6 +10,7 @@ import { GuestLayout } from '@/components/layout/GuestLayout';
 import { ROLE_HOME_ROUTES } from '@/lib/constants';
 import { lazy, Suspense } from 'react';
 import { DemoTools } from '@/components/ui/DemoTools';
+import { OfflineBanner } from '@/components/ui/OfflineBanner';
 
 // Common
 const LoginPage      = lazy(() => import('@/features/auth/LoginPage'));
@@ -121,6 +122,7 @@ export function AppRouter() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+        <OfflineBanner />
         <DemoTools />
       </AuthProvider>
     </BrowserRouter>

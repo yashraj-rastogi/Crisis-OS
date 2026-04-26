@@ -9,8 +9,6 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import {
   doc,
   updateDoc,
-  collection,
-  addDoc,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
@@ -179,4 +177,34 @@ export async function structureIncident(
   }
 
   return output;
+}
+
+/**
+ * Periodically called during an active incident to generate tactical recommendations
+ * based on live aggregate guest stats.
+ */
+export async function getSafetyAgentRecommendation(
+  type: IncidentType,
+  stats: { safe: number; needHelp: number; unableToMove: number; pending: number; total: number }
+): Promise<string> {
+  try {
+    const model = genAI.getGenerativeModel({ model: MODEL });
+    const prompt = `You are SafetyAgent, an AI tactical advisor for a hotel manager during an active emergency.
+Incident Type: ${type.replace('_', ' ')}
+Live Guest Status:
+- Total Responded/Notified: ${stats.total}
+- Safe: ${stats.safe}
+- Need Help: ${stats.needHelp}
+- Unable to Move: ${stats.unableToMove}
+- Pending (No Response): ${stats.pending}
+
+Based on these numbers, give ONE short tactical recommendation (max 2 sentences). Be direct and actionable.
+Example: "70% of guests are unaccounted for. Recommend dispatching search teams to upper floors."`;
+
+    const result = await model.generateContent(prompt);
+    return result.response.text().trim();
+  } catch (err) {
+    console.warn('[AI] SafetyAgent call failed:', err);
+    return 'Monitor the situation closely and await further guest check-ins.';
+  }
 }

@@ -134,3 +134,36 @@ export async function simulateGuestResponses(incidentId: string, propertyId: str
   await batch.commit();
   console.log(`✅ Seeded ${dummyResponses.length} dummy guest responses for incident ${incidentId}`);
 }
+
+import { createIncident } from './incident.service';
+import { structureIncident } from './ai.service';
+
+/**
+ * Simulates an IoT smoke detector triggering an incident automatically.
+ */
+export async function triggerMockSensorIncident(propertyId: string, orgId: string, actorUid: string, actorRole: string) {
+  const details = "AUTOMATED ALERT: Smoke detected by IoT Sensor #SD-402 in Main Kitchen. Rapid temperature rise detected.";
+  
+  const incidentId = await createIncident({
+    propertyId,
+    orgId,
+    type: 'fire',
+    location: { freeText: 'Main Kitchen' },
+    details,
+    createdBy: 'system_iot',
+    createdByRole: 'admin',
+  });
+
+  // AI Structure in background
+  structureIncident({
+    incidentId,
+    type: 'fire',
+    location: 'Main Kitchen',
+    details,
+    actorUid,
+    actorRole: actorRole as any,
+  }).catch(console.error);
+
+  console.log(`✅ Triggered mock sensor incident ${incidentId}`);
+  return incidentId;
+}

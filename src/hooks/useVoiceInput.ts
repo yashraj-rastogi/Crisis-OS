@@ -18,11 +18,11 @@ interface UseVoiceInputReturn {
 export function useVoiceInput(lang = 'en-IN'): UseVoiceInputReturn {
   const [transcript, setTranscript] = useState('');
   const [listening, setListening]   = useState(false);
-  const recognitionRef               = useRef<SpeechRecognition | null>(null);
+  const recognitionRef               = useRef<any>(null);
 
   const SpeechRecognitionCtor =
     typeof window !== 'undefined'
-      ? (window.SpeechRecognition ?? (window as Window & typeof globalThis & { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition)
+      ? ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition)
       : undefined;
 
   const supported = Boolean(SpeechRecognitionCtor);
@@ -47,12 +47,12 @@ export function useVoiceInput(lang = 'en-IN'): UseVoiceInputReturn {
 
     recognition.onstart = () => setListening(true);
     recognition.onend   = () => setListening(false);
-    recognition.onerror = (e) => {
+    recognition.onerror = (e: any) => {
       console.warn('[Voice] Recognition error:', e.error);
       setListening(false);
     };
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: any) => {
       let full = '';
       for (let i = 0; i < event.results.length; i++) {
         full += event.results[i][0].transcript;

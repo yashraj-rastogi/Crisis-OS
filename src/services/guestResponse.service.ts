@@ -7,7 +7,6 @@
 import {
   collection,
   doc,
-  addDoc,
   setDoc,
   query,
   where,
@@ -34,13 +33,29 @@ export interface SubmitResponseParams {
   note?: string;
 }
 
+const OFFLINE_QUEUE_KEY = 'crisis_os_offline_responses';
+
 /**
  * Upserts a guest response doc (one per guest per incident).
  * Uses guestUid + incidentId as a deterministic doc ID.
+ * Supports offline queuing if navigator.onLine is false.
  */
 export async function submitGuestResponse(
   params: SubmitResponseParams,
 ): Promise<void> {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    const queue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
+    // Keep only the latest status per guest/incident
+    const existingIdx = queue.findIndex((q: any) => q.incidentId === params.incidentId && q.guestUid === params.guestUid);
+    if (existingIdx >= 0) {
+      queue[existingIdx] = params;
+    } else {
+      queue.push(params);
+    }
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+    return Promise.resolve();
+  }
+
   const { incidentId, guestUid, ...rest } = params;
 
   // Deterministic ID = no duplicates per guest per incident
@@ -69,6 +84,30 @@ export async function submitGuestResponse(
     message: `Guest ${rest.guestName} (${rest.roomLabel}) reported: ${rest.status}`,
     metadata: { status: rest.status, roomLabel: rest.roomLabel },
   });
+}
+
+export async function flushOfflineQueue() {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return;
+  const queue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
+  if (queue.length === 0) return;
+
+  localStorage.removeItem(OFFLINE_QUEUE_KEY);
+
+  for (const item of queue) {
+    try {
+      await submitGuestResponse(item);
+    } catch (e) {
+      console.error('Failed to sync offline response:', e);
+      // Simple retry: put back in queue if it fails
+      const currentQueue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
+      currentQueue.push(item);
+      localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(currentQueue));
+    }
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', flushOfflineQueue);
 }
 
 // ── Realtime Aggregate Subscription ──────────────────────────

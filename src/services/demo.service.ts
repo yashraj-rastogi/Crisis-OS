@@ -151,7 +151,7 @@ export async function triggerMockSensorIncident(propertyId: string, orgId: strin
     location: { freeText: 'Main Kitchen' },
     details,
     createdBy: 'system_iot',
-    createdByRole: 'admin',
+    createdByRole: 'org_admin',
   });
 
   // AI Structure in background

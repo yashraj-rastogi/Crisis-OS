@@ -59,6 +59,8 @@ export default function GuestJoinPage() {
       if (currentUser) {
         await createUserProfile(currentUser, 'guest', {
           propertyId: property.id,
+          displayName: guestName.trim(),
+          roomId: roomLabel.trim() || undefined,
         });
       }
 

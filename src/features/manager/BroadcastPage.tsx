@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { getIncident } from '@/services/incident.service';
 import { createBroadcast } from '@/services/broadcast.service';
@@ -29,6 +29,7 @@ export default function BroadcastPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate  = useNavigate();
+  const { state: navState } = useLocation();
 
   const [incident, setIncident]     = useState<IncidentDoc | null>(null);
   const [scope, setScope]           = useState<BroadcastScope>('all');
@@ -44,9 +45,14 @@ export default function BroadcastPage() {
     getIncident(id)
       .then((inc) => {
         setIncident(inc);
+        // Seed message from AI output first
         if (inc?.aiOutput) {
-          setMessageEn(inc.aiOutput.guestInstructions.en);
+          setMessageEn(inc.aiOutput.guestInstructions.en ?? '');
           setMessageHi(inc.aiOutput.guestInstructions.hi ?? '');
+        }
+        // Override with manager-edited message if navigated from ReviewIncidentPage
+        if (navState?.overrideMessageEn) {
+          setMessageEn(navState.overrideMessageEn as string);
         }
       })
       .catch(() => setError('Failed to load incident.'))

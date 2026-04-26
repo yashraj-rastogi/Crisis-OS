@@ -4,6 +4,7 @@ import { getHandoffSummary, generateHandoffSummary } from '@/services/incident.s
 import { useAuth } from '@/contexts/AuthContext';
 import { Shield, Copy, Check, ArrowRight, Loader2 } from 'lucide-react';
 import type { HandoffSummary } from '@/lib/types';
+import { Button } from '@/components/ui/Button';
 import toast from 'react-hot-toast';
 
 export default function HandoffPage() {
@@ -21,7 +22,7 @@ export default function HandoffPage() {
     getHandoffSummary(id).then(s => {
       setSummary(s);
       setLoading(false);
-    }).catch(e => {
+    }).catch(() => {
       toast.error('Failed to load summary');
       setLoading(false);
     });
@@ -59,6 +60,7 @@ export default function HandoffPage() {
   }
 
   return (
+    <div className="page-container py-6">
     <div className="max-w-3xl mx-auto space-y-6">
       <header className="mb-8">
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -77,14 +79,14 @@ export default function HandoffPage() {
           <p className="text-slate-400 max-w-md mx-auto text-sm">
             Generate a snapshot of the current situation including active aggregate counts, critical guest locations, and AI summaries.
           </p>
-          <button
+          <Button
             onClick={handleGenerate}
-            disabled={generating}
-            className="btn-primary mt-4"
+            loading={generating}
+            className="mt-4"
+            icon={generating ? undefined : <ArrowRight className="w-4 h-4" />}
           >
-            {generating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            {generating ? 'Generating...' : 'Generate Handoff Link'}
-          </button>
+            {generating ? 'Generating…' : 'Generate Handoff Link'}
+          </Button>
         </div>
       ) : (
         <div className="space-y-6">
@@ -97,10 +99,14 @@ export default function HandoffPage() {
                 value={summary.responderLink}
                 className="input-field flex-1 text-sm bg-slate-950/50 text-slate-300 font-mono"
               />
-              <button onClick={handleCopy} className="btn-secondary whitespace-nowrap">
-                {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+              <Button
+                variant="outline"
+                onClick={handleCopy}
+                icon={copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                className="whitespace-nowrap"
+              >
                 {copied ? 'Copied' : 'Copy Link'}
-              </button>
+              </Button>
             </div>
             <p className="text-xs text-slate-500 mt-2">
               This link provides read-only access to the incident details and live aggregate counts.
@@ -147,22 +153,22 @@ export default function HandoffPage() {
           </div>
 
           <div className="flex justify-end gap-3 mt-8">
-            <button
+            <Button
+              variant="outline"
               onClick={() => navigate(`/manager/incidents/${id}/live`)}
-              className="btn-secondary"
             >
               Back to Dashboard
-            </button>
-            <button
-              onClick={() => navigate(`/manager/incidents/${id}/resolve`)}
-              className="btn-primary"
+            </Button>
+            <Button
+              onClick={() => navigate(`/manager/incidents/${id}/live`)}
+              icon={<ArrowRight className="w-4 h-4" />}
             >
               Proceed to Resolution
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </button>
+            </Button>
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

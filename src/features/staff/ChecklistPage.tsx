@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { getIncident } from '@/services/incident.service';
-import { doc, setDoc, collection, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, collection, serverTimestamp, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { COLLECTIONS } from '@/lib/constants';
 import type { IncidentDoc } from '@/services/incident.service';
@@ -32,26 +32,27 @@ export default function ChecklistPage() {
       .catch(() => { setError('Failed to load incident.'); setLoading(false); });
   }, [id]);
 
-  // Realtime checklist subscription
+  // Realtime checklist subscription — filtered server-side to avoid full-collection scans
   useEffect(() => {
     if (!id) return;
-    const q = collection(db, COLLECTIONS.CHECKLISTS);
+    const q = query(
+      collection(db, COLLECTIONS.CHECKLISTS),
+      where('incidentId', '==', id),
+    );
     const unsub = onSnapshot(q, (snap) => {
-      const filtered = snap.docs
-        .map((d) => {
-          const data = d.data();
-          return {
-            id:           d.id,
-            incidentId:   data.incidentId,
-            assignedTo:   data.assignedTo,
-            task:         data.task,
-            isComplete:   data.isComplete,
-            isBlocked:    data.isBlocked,
-            completedAt:  data.completedAt ? (data.completedAt as Timestamp).toDate() : undefined,
-          } as ChecklistItem;
-        })
-        .filter((item) => item.incidentId === id);
-      setItems(filtered);
+      const items = snap.docs.map((d) => {
+        const data = d.data();
+        return {
+          id:           d.id,
+          incidentId:   data.incidentId,
+          assignedTo:   data.assignedTo,
+          task:         data.task,
+          isComplete:   data.isComplete,
+          isBlocked:    data.isBlocked,
+          completedAt:  data.completedAt ? (data.completedAt as Timestamp).toDate() : undefined,
+        } as ChecklistItem;
+      });
+      setItems(items);
     });
     return unsub;
   }, [id]);

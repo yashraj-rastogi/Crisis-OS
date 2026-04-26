@@ -5,7 +5,7 @@ import { subscribeToHazardPins, addHazardPin, deleteHazardPin } from '@/services
 import { getFloorsByProperty } from '@/services/layout.service';
 import {
   MapPin, AlertTriangle, ShieldCheck, DoorOpen, Flag,
-  Plus, X, Loader2, Map as MapIcon, Layers, Trash2,
+  Plus, X, Loader2, Map as MapIcon, Layers,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 

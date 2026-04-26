@@ -115,12 +115,13 @@ export async function createUserProfile(
     orgId?: string;
     propertyId?: string;
     roomId?: string;
+    displayName?: string;  // override for anonymous users
   },
 ) {
   const profile: Record<string, unknown> = {
     uid:         user.uid,
     email:       user.email ?? '',
-    displayName: user.displayName ?? '',
+    displayName: extra?.displayName ?? user.displayName ?? '',
     role,
     orgId:       extra?.orgId ?? null,
     propertyId:  extra?.propertyId ?? null,

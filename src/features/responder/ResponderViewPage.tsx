@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { getHandoffSummary } from '@/services/incident.service';
+import type { HandoffSummary, GuestResponse } from '@/lib/types';
 import { subscribeToResponseAggregates } from '@/services/guestResponse.service';
-import { Shield, AlertTriangle, Info, Clock, Loader2, HeartPulse, UserX, Activity } from 'lucide-react';
-import type { HandoffSummary, ResponseAggregates } from '@/lib/types';
+import type { ResponseAggregates } from '@/services/guestResponse.service';
 import { MapOverlay } from '@/components/crisis/MapOverlay';
+import { Shield, AlertTriangle, Info, Clock, Loader2, HeartPulse, UserX, Activity } from 'lucide-react';
 
 export default function ResponderViewPage() {
   const { id } = useParams<{ id: string }>();
@@ -61,8 +62,8 @@ export default function ResponderViewPage() {
   const unableCount = liveAggregates ? liveAggregates.unableToMove : summary.unableCount;
   const totalGuests = liveAggregates ? liveAggregates.total : summary.totalGuests;
   
-  const criticalGuests = liveAggregates 
-    ? liveAggregates.responses.filter(r => r.status === 'need_help' || r.status === 'unable_to_move')
+  const criticalGuests: GuestResponse[] = liveAggregates
+    ? liveAggregates.responses.filter((r: GuestResponse) => r.status === 'need_help' || r.status === 'unable_to_move')
     : summary.unresolvedCritical;
 
   return (

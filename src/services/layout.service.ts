@@ -1,5 +1,5 @@
 import {
-  collection, doc, setDoc, getDocs, deleteDoc, query, where, orderBy, serverTimestamp,
+  collection, doc, setDoc, getDocs, deleteDoc, updateDoc, query, where, orderBy, serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { COLLECTIONS } from '@/lib/constants';
@@ -8,6 +8,7 @@ export interface FloorData {
   propertyId: string;
   label: string;
   order: number;
+  mapImageUrl?: string;
 }
 
 export interface RoomData {
@@ -34,6 +35,10 @@ export async function getFloorsByProperty(propertyId: string) {
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function updateFloorMapImage(floorId: string, mapImageUrl: string) {
+  await updateDoc(doc(db, COLLECTIONS.FLOORS, floorId), { mapImageUrl });
 }
 
 export async function deleteFloor(floorId: string) {

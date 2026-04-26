@@ -8,6 +8,7 @@ import type { GuestResponse } from '@/lib/types';
 import { GUEST_STATUS_LABELS, GUEST_STATUS_COLORS, INCIDENT_TYPE_LABELS } from '@/lib/constants';
 import { Button } from '@/components/ui/Button';
 import { AlertBanner } from '@/components/ui/AlertBanner';
+import { MapOverlay } from '@/components/crisis/MapOverlay';
 import { formatTimeAgo } from '@/lib/utils';
 import {
   ShieldCheck, AlertCircle, MoveRight, Clock, Users, Radio, ArrowRight, CheckCircle2
@@ -174,6 +175,17 @@ export default function LiveResponseBoard() {
         <KPICard label="Can't Move"   count={agg.unableToMove} total={agg.total} icon={<MoveRight className="w-4 h-4" />}   colorClass="text-red-400"   urgent />
         <KPICard label="Pending"      count={agg.pending}      total={agg.total} icon={<Clock className="w-4 h-4" />}       colorClass="text-slate-400" />
       </div>
+
+      {/* Spatial Awareness Map — Managers can place hazard pins */}
+      {id && incident.propertyId && incident.state !== 'resolved' && (
+        <MapOverlay
+          incidentId={id}
+          propertyId={incident.propertyId}
+          targetFloorId={incident.location.floorId}
+          editable
+          userId={user?.uid}
+        />
+      )}
 
       {/* Total badge */}
       <div className="flex items-center gap-2 text-sm text-slate-400">

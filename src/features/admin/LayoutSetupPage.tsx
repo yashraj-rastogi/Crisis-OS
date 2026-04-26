@@ -6,11 +6,11 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { AlertBanner } from '@/components/ui/AlertBanner';
 import { Badge } from '@/components/ui/Badge';
-import { addFloor, getFloorsByProperty, deleteFloor, addRoom, getRoomsByFloor } from '@/services/layout.service';
-import { LayoutGrid, Plus, Trash2, DoorOpen, ChevronDown, ChevronRight } from 'lucide-react';
+import { addFloor, getFloorsByProperty, deleteFloor, addRoom, getRoomsByFloor, updateFloorMapImage } from '@/services/layout.service';
+import { LayoutGrid, Plus, Trash2, DoorOpen, ChevronDown, ChevronRight, Map, ImagePlus, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-interface FloorItem { id: string; label: string; order: number; rooms: RoomItem[]; }
+interface FloorItem { id: string; label: string; order: number; mapImageUrl?: string; rooms: RoomItem[]; }
 interface RoomItem  { id: string; label: string; zone: string; }
 
 export default function LayoutSetupPage() {
@@ -25,6 +25,9 @@ export default function LayoutSetupPage() {
   const [roomLabel, setRoomLabel] = useState('');
   const [roomZone, setRoomZone] = useState('');
   const [addingRoomTo, setAddingRoomTo] = useState<string | null>(null);
+  // Map image form
+  const [mapUrls, setMapUrls] = useState<Record<string, string>>({});
+  const [savingMap, setSavingMap] = useState<string | null>(null);
 
   const propertyId = user?.propertyId;
 
@@ -39,9 +42,26 @@ export default function LayoutSetupPage() {
     const withRooms: FloorItem[] = [];
     for (const f of raw) {
       const rooms = await getRoomsByFloor(f.id);
-      withRooms.push({ id: f.id, label: (f as unknown as { label: string }).label, order: (f as unknown as { order: number }).order, rooms: rooms.map((r) => ({ id: r.id, label: (r as unknown as { label: string }).label, zone: (r as unknown as { zone: string }).zone })) });
+      const fd = f as unknown as { label: string; order: number; mapImageUrl?: string };
+      withRooms.push({
+        id: f.id,
+        label: fd.label,
+        order: fd.order,
+        mapImageUrl: fd.mapImageUrl,
+        rooms: rooms.map((r) => ({
+          id: r.id,
+          label: (r as unknown as { label: string }).label,
+          zone: (r as unknown as { zone: string }).zone,
+        })),
+      });
     }
     setFloors(withRooms);
+    // Pre-fill map URL inputs
+    const urls: Record<string, string> = {};
+    for (const f of withRooms) {
+      urls[f.id] = f.mapImageUrl || '';
+    }
+    setMapUrls(urls);
   };
 
   const handleAddFloor = async () => {
@@ -77,6 +97,20 @@ export default function LayoutSetupPage() {
     setLoading(false);
   };
 
+  const handleSaveMapUrl = async (floorId: string) => {
+    const url = mapUrls[floorId]?.trim();
+    if (!url) return;
+    setSavingMap(floorId);
+    try {
+      await updateFloorMapImage(floorId, url);
+      await loadFloors();
+      toast.success('Floor map saved!');
+    } catch {
+      toast.error('Failed to save floor map.');
+    }
+    setSavingMap(null);
+  };
+
   return (
     <div className="max-w-2xl mx-auto">
       {/* Progress */}
@@ -100,7 +134,7 @@ export default function LayoutSetupPage() {
             </div>
             <div>
               <CardTitle>Floor &amp; Room Layout</CardTitle>
-              <CardDescription>Add your floors and rooms so broadcasts can target specific areas.</CardDescription>
+              <CardDescription>Add your floors, rooms, and floor plan maps for spatial guidance.</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -125,6 +159,11 @@ export default function LayoutSetupPage() {
                       {expandedFloor === floor.id ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
                       <span className="text-sm font-medium text-slate-200">{floor.label}</span>
                       <Badge variant="default">{floor.rooms.length} rooms</Badge>
+                      {floor.mapImageUrl && (
+                        <span className="flex items-center gap-1 text-xs text-green-400">
+                          <Map className="w-3 h-3" /> Map
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <button onClick={(e) => { e.stopPropagation(); setAddingRoomTo(floor.id); setExpandedFloor(floor.id); }} className="text-xs text-primary-400 hover:text-primary-300"><DoorOpen className="w-4 h-4" /></button>
@@ -132,7 +171,49 @@ export default function LayoutSetupPage() {
                     </div>
                   </div>
                   {expandedFloor === floor.id && (
-                    <div className="px-4 py-3 border-t border-slate-800 space-y-2">
+                    <div className="px-4 py-3 border-t border-slate-800 space-y-3">
+                      {/* Floor Map Image URL */}
+                      <div className="bg-slate-800/20 rounded-lg p-3 border border-slate-700/50">
+                        <label className="text-xs text-slate-400 uppercase tracking-wide font-semibold flex items-center gap-1.5 mb-2">
+                          <ImagePlus className="w-3.5 h-3.5" /> Floor Plan Image
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="https://example.com/floor-plan.png"
+                            value={mapUrls[floor.id] || ''}
+                            onChange={(e) => setMapUrls({ ...mapUrls, [floor.id]: e.target.value })}
+                            className="flex-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-slate-200
+                              placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                          />
+                          <button
+                            onClick={() => handleSaveMapUrl(floor.id)}
+                            disabled={!mapUrls[floor.id]?.trim() || savingMap === floor.id}
+                            className="px-3 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium
+                              hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors
+                              flex items-center gap-1.5"
+                          >
+                            {savingMap === floor.id ? (
+                              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                              <Check className="w-4 h-4" />
+                            )}
+                            Save
+                          </button>
+                        </div>
+                        {floor.mapImageUrl && (
+                          <div className="mt-2 rounded-lg overflow-hidden border border-slate-700/50 bg-slate-950">
+                            <img
+                              src={floor.mapImageUrl}
+                              alt={`${floor.label} floor plan`}
+                              className="w-full h-32 object-contain opacity-80"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Rooms */}
                       {floor.rooms.map((room) => (
                         <div key={room.id} className="flex items-center justify-between px-3 py-2 bg-slate-800/20 rounded-lg text-sm">
                           <span className="text-slate-300">{room.label}</span>

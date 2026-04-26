@@ -4,6 +4,7 @@ import { getHandoffSummary } from '@/services/incident.service';
 import { subscribeToResponseAggregates } from '@/services/guestResponse.service';
 import { Shield, AlertTriangle, Info, Clock, Loader2, HeartPulse, UserX, Activity } from 'lucide-react';
 import type { HandoffSummary, ResponseAggregates } from '@/lib/types';
+import { MapOverlay } from '@/components/crisis/MapOverlay';
 
 export default function ResponderViewPage() {
   const { id } = useParams<{ id: string }>();
@@ -74,7 +75,7 @@ export default function ResponderViewPage() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-white">Responder Command View</h1>
-              <p className="text-xs text-slate-400">Read-only live feed • Incident #{id.slice(0, 8)}</p>
+              <p className="text-xs text-slate-400">Read-only live feed • Incident #{id?.slice(0, 8)}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -108,6 +109,14 @@ export default function ResponderViewPage() {
             </div>
           </div>
         </section>
+
+        {/* Map Overlay — spatial awareness for responders */}
+        {id && summary.propertyId && (
+          <MapOverlay
+            incidentId={id}
+            propertyId={summary.propertyId}
+          />
+        )}
 
         {/* Live Aggregates */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">

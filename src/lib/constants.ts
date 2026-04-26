@@ -100,7 +100,27 @@ export const COLLECTIONS = {
   HANDOFFS:          'handoffs',
   CHECKLISTS:        'checklists',
   AGGREGATES:        'aggregates',
+  HAZARD_PINS:       'hazardPins',
 } as const;
+
+// ------ Hazard Pin Types ------------------------------------
+import type { HazardPinType } from './types';
+
+export const HAZARD_PIN_LABELS: Record<HazardPinType, string> = {
+  danger:         '🔴 Danger Zone',
+  caution:        '🟡 Caution Area',
+  safe_zone:      '🟢 Safe Zone',
+  exit:           '🚪 Exit Route',
+  assembly_point: '📍 Assembly Point',
+};
+
+export const HAZARD_PIN_COLORS: Record<HazardPinType, { bg: string; border: string; text: string; dot: string }> = {
+  danger:         { bg: 'bg-red-900/40',    border: 'border-red-600',    text: 'text-red-400',    dot: 'bg-red-500'    },
+  caution:        { bg: 'bg-amber-900/40',  border: 'border-amber-600',  text: 'text-amber-400',  dot: 'bg-amber-500'  },
+  safe_zone:      { bg: 'bg-green-900/40',  border: 'border-green-600',  text: 'text-green-400',  dot: 'bg-green-500'  },
+  exit:           { bg: 'bg-blue-900/40',   border: 'border-blue-600',   text: 'text-blue-400',   dot: 'bg-blue-500'   },
+  assembly_point: { bg: 'bg-purple-900/40', border: 'border-purple-600', text: 'text-purple-400', dot: 'bg-purple-500' },
+};
 
 // ------ Join Code -------------------------------------------
 export const JOIN_CODE_LENGTH = 6;

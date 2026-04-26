@@ -77,7 +77,23 @@ export interface Floor {
   propertyId: string;
   label: string;           // e.g. "Floor 1", "Ground Floor"
   order: number;
-  mapImageUrl?: string;
+  mapImageUrl?: string;    // URL to floor plan image for map overlay
+}
+
+// ------ Hazard Pins (Map Overlay) ----------------------------
+export type HazardPinType = 'danger' | 'caution' | 'safe_zone' | 'exit' | 'assembly_point';
+
+export interface HazardPin {
+  id: string;
+  incidentId: string;
+  floorId: string;
+  label: string;             // e.g. "Gas Leak Source", "Exit Route"
+  type: HazardPinType;
+  /** Percentage-based coordinates on the floor plan image (0-100) */
+  x: number;
+  y: number;
+  createdBy: string;
+  createdAt: Date;
 }
 
 export interface Room {
@@ -130,6 +146,7 @@ export interface Incident {
   aiGeneratedAt?: Date;
   broadcastSentAt?: Date;
   broadcastScope?: BroadcastScope;
+  hazardPins?: HazardPin[];  // map overlay pins for this incident
   createdBy: string;         // uid
   createdByRole: Role;
   createdAt: Date;

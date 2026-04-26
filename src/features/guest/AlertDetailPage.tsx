@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { AlertBanner } from '@/components/ui/AlertBanner';
 import { LanguageSwitcher, useGuestLanguage } from '@/components/ui/LanguageSwitcher';
+import { MapOverlay } from '@/components/crisis/MapOverlay';
 import {
   ShieldCheck, AlertCircle, MoveHorizontal, Loader2, Siren,
 } from 'lucide-react';
@@ -58,7 +59,7 @@ export default function AlertDetailPage() {
   const [lang, setLang] = useGuestLanguage();
 
   const [incident, setIncident]     = useState<{
-    type: string; location: { freeText: string }; aiOutput?: AIStructuredOutput;
+    type: string; propertyId: string; location: { freeText: string; floorId?: string }; aiOutput?: AIStructuredOutput;
   } | null>(null);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [error, setError]           = useState('');
@@ -127,6 +128,18 @@ export default function AlertDetailPage() {
           <p className="text-xs text-slate-400">📍 {incident.location.freeText}</p>
         )}
       </div>
+
+      {/* Map Overlay — spatial awareness */}
+      {id && incident?.propertyId && (
+        <div className="mb-6">
+          <MapOverlay
+            incidentId={id}
+            propertyId={incident.propertyId}
+            targetFloorId={incident.location?.floorId}
+            compact
+          />
+        </div>
+      )}
 
       {error && <div className="mb-4"><AlertBanner type="danger" dismissible>{error}</AlertBanner></div>}
 

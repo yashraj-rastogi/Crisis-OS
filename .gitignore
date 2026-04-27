@@ -25,12 +25,19 @@ ui-debug.log
 
 # Vite
 vite.config.ts.timestamp-*
+vite.config.js
+vite.config.d.ts
 
 # Editor
 .vscode/settings.json
 .idea/
 *.swp
 *.swo
+
+# AI assistant IDE configs (not for public repos)
+.claude/
+.kiro/
+.opencode.json
 
 # OS
 .DS_Store

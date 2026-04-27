@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { AlertBanner } from '@/components/ui/AlertBanner';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 import { createProperty, getPropertiesByOrg } from '@/services/property.service';
 import { updateUserProfile } from '@/services/auth.service';
-import { Hotel, Copy, Check } from 'lucide-react';
+import { Hotel, Copy, Check, Plus, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const propertyTypes = [
@@ -19,28 +20,39 @@ const propertyTypes = [
   { value: 'other',    label: 'Other' },
 ];
 
+interface ExistingProperty {
+  id: string;
+  name: string;
+  type: string;
+  joinCode?: string;
+  address?: string;
+}
+
 export default function PropertySetupPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
+
+  // existing properties list
+  const [existingProps, setExistingProps] = useState<ExistingProperty[]>([]);
+  const [checking, setChecking] = useState(true);
+  const [showNewForm, setShowNewForm] = useState(false);
+
+  // form state
   const [name, setName] = useState('');
   const [type, setType] = useState('hotel');
   const [address, setAddress] = useState('');
   const [language, setLanguage] = useState('en');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [joinCode, setJoinCode] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [checking, setChecking] = useState(true);
+  const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user?.orgId) { setChecking(false); return; }
     getPropertiesByOrg(user.orgId).then((props) => {
-      if (props.length > 0) {
-        navigate('/admin/setup/layout', { replace: true });
-      }
+      setExistingProps(props as ExistingProperty[]);
       setChecking(false);
     });
-  }, [user, navigate]);
+  }, [user?.orgId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,16 +62,19 @@ export default function PropertySetupPage() {
 
     setLoading(true);
     try {
-      const { propertyId, joinCode: code } = await createProperty({
+      const { propertyId } = await createProperty({
         orgId: user.orgId,
         name: name.trim(),
         type: type as 'hotel',
         address: address.trim(),
         defaultLanguage: language,
       });
+      // Update user profile with new propertyId
       await updateUserProfile(user.uid, { propertyId });
-      setJoinCode(code);
-      toast.success('Property created!');
+      // CRITICAL: refresh in-memory user so downstream pages (LayoutSetup) see propertyId
+      await refreshUser();
+      toast.success('Property created! You can now set up the layout.');
+      navigate('/admin/setup/layout');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to create property.');
     } finally {
@@ -67,11 +82,20 @@ export default function PropertySetupPage() {
     }
   };
 
-  const copyCode = () => {
-    navigator.clipboard.writeText(joinCode);
-    setCopied(true);
+  const handleSelectProperty = async (prop: ExistingProperty) => {
+    if (!user) return;
+    // Switch active property
+    await updateUserProfile(user.uid, { propertyId: prop.id });
+    await refreshUser();
+    toast.success(`Switched to ${prop.name}`);
+    navigate('/admin/setup/layout');
+  };
+
+  const copyCode = (code: string, propId: string) => {
+    navigator.clipboard.writeText(code);
+    setCopied(propId);
     toast.success('Join code copied!');
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(null), 2000);
   };
 
   if (checking) return null;
@@ -106,25 +130,74 @@ export default function PropertySetupPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {joinCode ? (
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-900/30 border border-emerald-700 flex items-center justify-center mx-auto">
-                <Check className="w-8 h-8 text-emerald-400" />
+          {/* Existing Properties */}
+          {existingProps.length > 0 && !showNewForm && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-semibold text-slate-200">Your Properties</p>
+                <Button size="sm" variant="outline" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => setShowNewForm(true)}>
+                  Add Property
+                </Button>
               </div>
-              <h3 className="text-lg font-semibold text-white">Property Created!</h3>
-              <p className="text-sm text-slate-400">Share this join code with guests:</p>
-              <div className="flex items-center justify-center gap-3">
-                <span className="text-3xl font-mono font-bold tracking-[0.3em] text-primary-400 bg-slate-800/50 px-6 py-3 rounded-xl border border-slate-700">
-                  {joinCode}
-                </span>
-                <button onClick={copyCode} className="p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors">
-                  {copied ? <Check className="w-5 h-5 text-emerald-400" /> : <Copy className="w-5 h-5" />}
-                </button>
+              <div className="space-y-2">
+                {existingProps.map((prop) => (
+                  <div
+                    key={prop.id}
+                    className={`flex items-center justify-between p-4 rounded-xl border transition-colors cursor-pointer hover:bg-slate-800/50 ${
+                      user?.propertyId === prop.id
+                        ? 'border-primary-700 bg-primary-900/20'
+                        : 'border-slate-800 bg-slate-800/20'
+                    }`}
+                    onClick={() => handleSelectProperty(prop)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Hotel className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-white">{prop.name}</p>
+                        <p className="text-xs text-slate-500 capitalize">{prop.type}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {prop.joinCode && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-mono text-primary-400 bg-primary-900/30 px-2 py-0.5 rounded border border-primary-800">
+                            {prop.joinCode}
+                          </span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); copyCode(prop.joinCode!, prop.id); }}
+                            className="p-1 rounded hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors"
+                          >
+                            {copied === prop.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      )}
+                      {user?.propertyId === prop.id && (
+                        <Badge variant="active" dot>Active</Badge>
+                      )}
+                      <ChevronRight className="w-4 h-4 text-slate-600" />
+                    </div>
+                  </div>
+                ))}
               </div>
-              <Button onClick={() => navigate('/admin/setup/layout')} className="w-full mt-4" size="lg">Continue to Layout Setup</Button>
+              {user?.propertyId && (
+                <Button onClick={() => navigate('/admin/setup/layout')} className="w-full mt-2" size="lg">
+                  Continue to Layout Setup
+                </Button>
+              )}
             </div>
-          ) : (
+          )}
+
+          {/* New Property Form */}
+          {(existingProps.length === 0 || showNewForm) && (
             <>
+              {showNewForm && (
+                <button
+                  onClick={() => setShowNewForm(false)}
+                  className="text-xs text-slate-400 hover:text-slate-200 mb-4 flex items-center gap-1 transition-colors"
+                >
+                  ← Back to properties
+                </button>
+              )}
               {error && <AlertBanner type="danger" dismissible className="mb-4">{error}</AlertBanner>}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Input label="Property Name" placeholder="Grand Hotel Downtown" value={name} onChange={(e) => setName(e.target.value)} required disabled={loading} />

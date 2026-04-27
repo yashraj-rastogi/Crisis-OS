@@ -21,7 +21,7 @@ const genAI = new GoogleGenerativeAI(
   import.meta.env.VITE_GEMINI_API_KEY as string,
 );
 
-const MODEL = 'gemini-1.5-flash';
+const MODEL = 'gemini-2.5-flash';
 
 // ── Prompt template ──────────────────────────────────────────
 function buildPrompt(

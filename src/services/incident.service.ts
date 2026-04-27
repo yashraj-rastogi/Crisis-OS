@@ -213,7 +213,6 @@ export async function generateHandoffSummary(
   const qTimeline = query(
     collection(db, COLLECTIONS.TIMELINE),
     where('incidentId', '==', incidentId),
-    orderBy('timestamp', 'asc')
   );
   const snapTimeline = await getDocs(qTimeline);
   const timeline = snapTimeline.docs.map(d => {
@@ -223,6 +222,8 @@ export async function generateHandoffSummary(
       timestamp: data.timestamp?.toDate?.() ?? new Date()
     };
   }) as TimelineEvent[];
+  // Sort client-side to avoid requiring a composite index
+  timeline.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
   const responderLink = `${window.location.origin}/responder/incidents/${incidentId}/view`;
 
@@ -245,8 +246,21 @@ export async function generateHandoffSummary(
     responderLink,
   };
 
+  // Serialize nested objects for Firestore (Dates → ISO strings)
+  const serializableUnresolved = unresolvedCritical.map(r => ({
+    ...r,
+    respondedAt: r.respondedAt instanceof Date ? r.respondedAt.toISOString() : r.respondedAt,
+    updatedAt: r.updatedAt instanceof Date ? r.updatedAt.toISOString() : r.updatedAt,
+  }));
+  const serializableTimeline = timeline.map(t => ({
+    ...t,
+    timestamp: t.timestamp instanceof Date ? t.timestamp.toISOString() : t.timestamp,
+  }));
+
   await setDoc(doc(db, COLLECTIONS.HANDOFFS, incidentId), {
     ...summary,
+    unresolvedCritical: serializableUnresolved,
+    timeline: serializableTimeline,
     generatedAt: serverTimestamp(),
   });
 
@@ -261,18 +275,27 @@ export async function generateHandoffSummary(
   return responderLink;
 }
 
+/** Parse a value that may be a Firestore Timestamp, ISO string, or Date */
+function toDate(v: any): Date {
+  if (!v) return new Date();
+  if (typeof v.toDate === 'function') return v.toDate();   // Firestore Timestamp
+  if (typeof v === 'string') return new Date(v);            // ISO string
+  if (v instanceof Date) return v;
+  return new Date();
+}
+
 export async function getHandoffSummary(incidentId: string): Promise<HandoffSummary | null> {
   const snap = await getDoc(doc(db, COLLECTIONS.HANDOFFS, incidentId));
   if (!snap.exists()) return null;
   const data = snap.data();
   return {
     ...data,
-    generatedAt: data.generatedAt?.toDate?.() ?? new Date(),
-    timeline: data.timeline?.map((t: any) => ({ ...t, timestamp: t.timestamp?.toDate?.() ?? new Date() })) || [],
+    generatedAt: toDate(data.generatedAt),
+    timeline: data.timeline?.map((t: any) => ({ ...t, timestamp: toDate(t.timestamp) })) || [],
     unresolvedCritical: data.unresolvedCritical?.map((r: any) => ({
       ...r,
-      respondedAt: r.respondedAt?.toDate?.() ?? new Date(),
-      updatedAt: r.updatedAt?.toDate?.() ?? new Date()
+      respondedAt: toDate(r.respondedAt),
+      updatedAt: toDate(r.updatedAt),
     })) || []
   } as HandoffSummary;
 }

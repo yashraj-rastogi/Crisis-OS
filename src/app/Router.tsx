@@ -17,11 +17,12 @@ const LoginPage      = lazy(() => import('@/features/auth/LoginPage'));
 const SelectRolePage = lazy(() => import('@/features/auth/SelectRolePage'));
 
 // Org Admin
-const OrgSetupPage      = lazy(() => import('@/features/admin/OrgSetupPage'));
-const PropertySetupPage = lazy(() => import('@/features/admin/PropertySetupPage'));
-const LayoutSetupPage   = lazy(() => import('@/features/admin/LayoutSetupPage'));
-const GuestAccessPage   = lazy(() => import('@/features/admin/GuestAccessPage'));
-const DrillConsolePage  = lazy(() => import('@/features/admin/DrillConsolePage'));
+const OrgSetupPage        = lazy(() => import('@/features/admin/OrgSetupPage'));
+const PropertySetupPage   = lazy(() => import('@/features/admin/PropertySetupPage'));
+const LayoutSetupPage     = lazy(() => import('@/features/admin/LayoutSetupPage'));
+const GuestAccessPage     = lazy(() => import('@/features/admin/GuestAccessPage'));
+const DrillConsolePage    = lazy(() => import('@/features/admin/DrillConsolePage'));
+const TeamManagementPage  = lazy(() => import('@/features/admin/TeamManagementPage'));
 
 // Manager
 const ManagerDashboard    = lazy(() => import('@/features/manager/ManagerDashboard'));

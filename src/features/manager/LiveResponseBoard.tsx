@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { doc, onSnapshot, Timestamp } from 'firebase/firestore';
 import { useAuth } from '@/contexts/AuthContext';
-import { getIncident, resolveIncident } from '@/services/incident.service';
+import { resolveIncident } from '@/services/incident.service';
 import { subscribeToResponseAggregates } from '@/services/guestResponse.service';
 import { getSafetyAgentRecommendation } from '@/services/ai.service';
 import type { IncidentDoc } from '@/services/incident.service';
+import { db } from '@/services/firebase';
+import { COLLECTIONS } from '@/lib/constants';
 import type { GuestResponse, IncidentType } from '@/lib/types';
 import { GUEST_STATUS_LABELS, GUEST_STATUS_COLORS, INCIDENT_TYPE_LABELS } from '@/lib/constants';
 import { Button } from '@/components/ui/Button';
@@ -141,11 +144,37 @@ export default function LiveResponseBoard() {
     }
   };
 
+  // Real-time subscription to incident state changes
   useEffect(() => {
     if (!id) return;
-    getIncident(id)
-      .then((inc) => { setIncident(inc); setFetching(false); })
-      .catch(() => { setError('Failed to load incident.'); setFetching(false); });
+    const unsub = onSnapshot(doc(db, COLLECTIONS.INCIDENTS, id), (snap) => {
+      if (!snap.exists()) {
+        setError('Incident not found.');
+        setFetching(false);
+        return;
+      }
+      const d = snap.data();
+      setIncident({
+        id: snap.id,
+        propertyId: d.propertyId,
+        orgId: d.orgId,
+        type: d.type,
+        location: d.location,
+        details: d.details,
+        state: d.state,
+        aiOutput: d.aiOutput,
+        createdBy: d.createdBy,
+        createdByRole: d.createdByRole,
+        createdAt: (d.createdAt as Timestamp)?.toDate?.() ?? new Date(),
+        resolvedAt: d.resolvedAt ? (d.resolvedAt as Timestamp).toDate() : undefined,
+      });
+      setFetching(false);
+    }, (err) => {
+      console.error('[LiveBoard] Incident snapshot error:', err);
+      setError('Failed to load incident.');
+      setFetching(false);
+    });
+    return unsub;
   }, [id]);
 
   // Realtime subscription to guest responses

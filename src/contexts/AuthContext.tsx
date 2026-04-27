@@ -33,6 +33,8 @@ interface AuthContextValue {
   signInWithGoogle: () => Promise<void>;
   signInAsGuest: () => Promise<void>;
   logout: () => Promise<void>;
+  /** Re-read the user profile from Firestore and update in-memory state. */
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -122,6 +124,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setFirebaseUser(null);
   };
 
+  /**
+   * Re-reads the current user's Firestore profile and refreshes the in-memory
+   * user state. Call this after any service that updates the user's profile
+   * (e.g. updateUserProfile, createUserProfile) so that downstream components
+   * like LayoutSetupPage immediately see the new propertyId / orgId / role.
+   */
+  const refreshUser = async () => {
+    const fbUser = auth.currentUser;
+    if (!fbUser || fbUser.isAnonymous) return;
+    try {
+      const profileRef = doc(db, COLLECTIONS.USERS, fbUser.uid);
+      const profileDoc = await getDoc(profileRef);
+      if (!profileDoc.exists()) return;
+      const data = profileDoc.data() as Record<string, unknown>;
+      setUser({
+        uid:         fbUser.uid,
+        email:       fbUser.email ?? '',
+        displayName: fbUser.displayName ?? (data.displayName as string) ?? 'User',
+        role:        (data.role as Role) ?? 'guest',
+        orgId:       (data.orgId as string) ?? undefined,
+        propertyId:  (data.propertyId as string) ?? undefined,
+      });
+    } catch (err) {
+      console.warn('[AuthContext] refreshUser error:', err);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -132,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithGoogle,
         signInAsGuest,
         logout,
+        refreshUser,
       }}
     >
       {children}

@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Building2, Hotel, LayoutGrid, Users, Radio, LogOut, ShieldAlert } from 'lucide-react';
+import { Building2, Hotel, LayoutGrid, Users, Radio, LogOut, ShieldAlert, UserCog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -8,6 +8,7 @@ const navItems = [
   { to: '/admin/setup/property',     label: 'Property',     icon: Hotel },
   { to: '/admin/setup/layout',       label: 'Layout',       icon: LayoutGrid },
   { to: '/admin/setup/guest-access', label: 'Guest Access', icon: Users },
+  { to: '/admin/team',               label: 'Team',         icon: UserCog },
   { to: '/admin/drill',              label: 'Drill Test',   icon: Radio },
 ];
 

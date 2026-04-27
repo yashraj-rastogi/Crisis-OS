@@ -63,21 +63,26 @@ export function MapOverlay({
   useEffect(() => {
     if (!propertyId) return;
     setLoadingFloors(true);
-    getFloorsByProperty(propertyId).then((raw) => {
-      const mapped: FloorInfo[] = raw.map((f: any) => ({
-        id: f.id,
-        label: f.label,
-        mapImageUrl: f.mapImageUrl,
-      }));
-      setFloors(mapped);
+    getFloorsByProperty(propertyId)
+      .then((raw) => {
+        const mapped: FloorInfo[] = raw.map((f: any) => ({
+          id: f.id,
+          label: f.label,
+          mapImageUrl: f.mapImageUrl,
+        }));
+        setFloors(mapped);
 
-      // Select the target floor or first floor with a map
-      const target = targetFloorId
-        ? mapped.find((f) => f.id === targetFloorId)
-        : mapped.find((f) => f.mapImageUrl);
-      setActiveFloor(target?.id ?? mapped[0]?.id ?? null);
-      setLoadingFloors(false);
-    });
+        // Select the target floor or first floor with a map
+        const target = targetFloorId
+          ? mapped.find((f) => f.id === targetFloorId)
+          : mapped.find((f) => f.mapImageUrl);
+        setActiveFloor(target?.id ?? mapped[0]?.id ?? null);
+        setLoadingFloors(false);
+      })
+      .catch((err) => {
+        console.error('[MapOverlay] Failed to load floors:', err);
+        setLoadingFloors(false);
+      });
   }, [propertyId, targetFloorId]);
 
   // Subscribe to hazard pins

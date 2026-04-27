@@ -11,7 +11,7 @@ import { Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function OrgSetupPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
@@ -47,6 +47,8 @@ export default function OrgSetupPage() {
       );
       // Link admin to org
       await updateUserProfile(user.uid, { orgId });
+      // Refresh in-memory user so the next page sees orgId immediately
+      await refreshUser();
       toast.success('Organization created!');
       navigate('/admin/setup/property');
     } catch (err: unknown) {
